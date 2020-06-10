@@ -13,21 +13,22 @@ class Sir:
         self.cont_rate = cont_rate
         self.recov_rate = recov_rate
 
-    def __deriv(self, y, t):
+    @staticmethod
+    def __deriv(y, t, model):
         s, i, r = y
-        ds_dt = -self.cont_rate * s * i / self.population
-        di_dt = self.cont_rate * s * i / self.population - self.recov_rate * i
-        dr_dt = self.recov_rate * i
+        ds_dt = -model.cont_rate * s * i / model.population
+        di_dt = model.cont_rate * s * i / model.population - model.recov_rate * i
+        dr_dt = model.recov_rate * i
         return ds_dt, di_dt, dr_dt
 
-    def model(self):
+    def get_data(self):
         y0 = self.s0, self.i0, self.r0
         t = np.linspace(0, self.days, self.days)
-        data = odeint(self.__deriv, y0, t)
+        data = odeint(Sir.__deriv, y0, t, args=(self,))
         return np.array(data).T
 
     def plot(self):
-        s, i, r = Sir.model(self)
+        s, i, r = Sir.get_data(self)
         t = np.linspace(0, self.days, self.days)
         fig, ax = plt.subplots()
         ax.plot(t, s / 1000, 'b', alpha=0.5, lw=2, label='Susceptible')
