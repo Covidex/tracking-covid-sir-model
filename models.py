@@ -23,13 +23,13 @@ class SIR:
 
     def get_data(self):
         y0 = self.s0, self.i0, self.r0
-        t = np.linspace(0, self.days, self.days)
+        t = np.linspace(0, self.days, self.days + 1)
         data = odeint(SIR.__deriv, y0, t, args=(self,))
         return np.array(data).T
 
     def plot(self):
         s, i, r = self.get_data() / 1000
-        t = np.linspace(0, self.days, self.days)
+        t = np.linspace(0, self.days, self.days + 1)
         fig, ax = plt.subplots()
         ax.plot(t, s, 'b', alpha=0.5, lw=2, label='Susceptible')
         ax.plot(t, i, 'r', alpha=0.5, lw=2, label='Infected')
@@ -42,7 +42,7 @@ class SIR:
 
     def plot2(self):
         s, i, r = SIR.get_data(self) / 1000
-        t = np.linspace(0, self.days, self.days)
+        t = np.linspace(0, self.days, self.days + 1)
         fig = plt.figure()
         ax = fig.add_subplot(facecolor=(.9, .9, .9), xmargin=0, ymargin=0)
         ax.fill_between(t, i, 0, facecolor=(1, .3, .3))
@@ -63,6 +63,7 @@ class SEIR:
         self.cont_rate = cont_rate
         self.incub_time = incub_time
         self.recov_rate = recov_rate
+        self.day = 0
 
     @staticmethod
     def __deriv(y, t, model):
@@ -71,17 +72,19 @@ class SEIR:
         de_dt = model.cont_rate * s * i / model.population - model.incub_time * e
         di_dt = model.incub_time * e - model.recov_rate * i
         dr_dt = model.recov_rate * i
+        model.day += 1
         return ds_dt, de_dt, di_dt, dr_dt
 
     def get_data(self):
         y0 = self.s0, self.e0, self.i0, self.r0
-        t = np.linspace(0, self.days, self.days)
+        self.day = 0
+        t = np.linspace(0, self.days, self.days + 1)
         data = odeint(SEIR.__deriv, y0, t, args=(self,))
         return np.array(data).T
 
     def plot(self):
         s, e, i, r = self.get_data() / 1000
-        t = np.linspace(0, self.days, self.days)
+        t = np.linspace(0, self.days, self.days + 1)
         fig, ax = plt.subplots()
         ax.plot(t, s, 'b', alpha=0.5, lw=2, label='Susceptible')
         ax.plot(t, e, 'y', alpha=0.5, lw=2, label='Exposed')
@@ -95,7 +98,7 @@ class SEIR:
 
     def plot2(self):
         s, e, i, r = SEIR.get_data(self) / 1000
-        t = np.linspace(0, self.days, self.days)
+        t = np.linspace(0, self.days, self.days + 1)
         fig = plt.figure()
         ax = fig.add_subplot(facecolor=(.9, .9, .9), xmargin=0, ymargin=0)
         ax.fill_between(t, i, 0, facecolor=(1, .3, .3))
