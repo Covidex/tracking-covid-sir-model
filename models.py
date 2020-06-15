@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.integrate import odeint
 import matplotlib.pyplot as plt
+from queue import PriorityQueue
 
 
 class SIR:
@@ -53,17 +54,49 @@ class SIR:
 
 
 class SEIR:
-    def __init__(self, s0, e0, i0, r0, population, days, cont_rate, incub_time, recov_rate):
+    def __init__(self, s0, e0, i0, r0, population, days, cont_rate, incub_time, recov_rate, events=None):
         self.s0 = s0
         self.e0 = e0
         self.i0 = i0
         self.r0 = r0
         self.population = population
         self.days = days
-        self.cont_rate = cont_rate
+        # cont_rates entries will have format [(start_time, value)]
+        self.cont_rates = [(0, cont_rate)]
+        self.__orig_cont_rate = cont_rate
         self.incub_time = incub_time
         self.recov_rate = recov_rate
         self.day = 0
+        # events should be be a list of format [(time, lambda)]
+        self.__events = PriorityQueue()
+        for event in events:
+            self.__events.put(event)
+
+    def add_events(self, events):
+        for event in events:
+            t, _ = event
+            assert 0 <= t <= self.days
+            self.__events.put(event)
+
+    def __apply_events(self):
+        # PRE: self.cont_rates is sorted chronologically
+        while not self.__events.empty():
+            t, func = self.__events.get()
+            ind = 0
+            while self.cont_rates[ind][0] < t and ind < len(self.cont_rates):
+                ind += 1
+            if ind == len(self.cont_rates):
+                self.cont_rates.append((t, func(self.cont_rates[-1][1])))
+            else:
+                if not self.cont_rates[ind][0] == t:
+                    self.cont_rates.insert(ind - 1, (t, func(self)))
+                for i in range(ind, len(self.cont_rates)):
+                    start = self.cont_rates[ind][0]
+                    cont_rate = func(self.cont_rates[ind - 1][1])
+                    self.cont_rates[ind] = (start, cont_rate)
+    
+    def remove_events(self):
+        self.cont_rates = [(0, self.__orig_cont_rate)]
 
     @staticmethod
     def __deriv(y, t, model):
