@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from queue import PriorityQueue
 
 
+# Class for the SIR model
 class SIR:
     def __init__(self, s0, i0, r0, population, days, cont_rate, recov_rate):
         self.s0 = s0
@@ -53,6 +54,7 @@ class SIR:
         plt.show()
 
 
+# Class for the SEIR model
 class SEIR:
     def __init__(self, s0, e0, i0, r0, population, days, cont_rate, incub_time, recov_rate, events=None):
         self.s0 = s0
@@ -72,12 +74,14 @@ class SEIR:
         for event in events:
             self.__events.put(event)
 
+    # Add events to the model
     def add_events(self, events):
         for event in events:
             t, _ = event
             assert 0 <= t <= self.days
             self.__events.put(event)
 
+    # Apply events by updating the list of contact rates
     def __apply_events(self):
         # PRE: self.cont_rates is sorted chronologically
         while not self.__events.empty():
@@ -94,10 +98,13 @@ class SEIR:
                     start = self.cont_rates[ind][0]
                     cont_rate = func(self.cont_rates[ind - 1][1])
                     self.cont_rates[ind] = (start, cont_rate)
-    
-    def remove_events(self):
+
+    # Revert contact rates to the original value (R0)
+    def revert_events(self):
         self.cont_rates = [(0, self.__orig_cont_rate)]
 
+    # Does the calculations for the 4 categories in the model
+    # TODO: refactor this to support events
     @staticmethod
     def __deriv(y, t, model):
         s, e, i, r = y
@@ -108,6 +115,8 @@ class SEIR:
         model.day += 1
         return ds_dt, de_dt, di_dt, dr_dt
 
+    # returns a 4 x t array of values corresponding to S, E, I, R
+    # TODO: refactor this to support events
     def get_data(self):
         y0 = self.s0, self.e0, self.i0, self.r0
         self.day = 0
@@ -115,6 +124,7 @@ class SEIR:
         data = odeint(SEIR.__deriv, y0, t, args=(self,))
         return np.array(data).T
 
+    # Plots the data outputted by the model
     def plot(self):
         s, e, i, r = self.get_data() / 1000
         t = np.linspace(0, self.days, self.days + 1)
@@ -129,6 +139,7 @@ class SEIR:
         ax.grid(c='lightgray')
         plt.show()
 
+    # Plots the data outputted by the model, but prettier
     def plot2(self):
         s, e, i, r = SEIR.get_data(self) / 1000
         t = np.linspace(0, self.days, self.days + 1)
