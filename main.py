@@ -1,6 +1,6 @@
 import models
 
-population = 10**6
+population = 19 * 10**6
 days = 365
 cont_rate = 1 / 4
 recov_rate = 1 / 10
@@ -11,5 +11,5 @@ s0, e0, i0, r0 = (population - 1, 0, 1, 0)
 # sir.plot2()
 
 seir = models.SEIR(s0, e0, i0, r0, population, days, cont_rate, incub_time, recov_rate)
-seir.add_events([(150, lambda r: r * 2)])
+# seir.add_events([(150, lambda r: r * 2)])
 seir.plot2()

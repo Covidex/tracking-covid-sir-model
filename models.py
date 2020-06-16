@@ -56,6 +56,7 @@ class SIR:
 
 # Class for the SEIR model
 class SEIR:
+    # TODO: add/remove stuff if necessary for the rewriting
     def __init__(self, s0, e0, i0, r0, population, days, cont_rate, incub_time, recov_rate, events=None):
         if events is None:
             events = []
@@ -71,6 +72,7 @@ class SEIR:
         self.incub_time = incub_time
         self.recov_rate = recov_rate
         self.day = 0
+        self.__count = 0    # debug
         # events should be be a list of format [(time, lambda)]
         self.__events = events
 
@@ -79,6 +81,7 @@ class SEIR:
         self.__events = self.__events + events
 
     # Apply events by updating the list of contact rates
+    # TODO: rewrite
     def __apply_events(self):
         for (t, func) in self.__events:
             for i in range(t, self.days):
@@ -90,7 +93,7 @@ class SEIR:
         self.cont_rates = [self.__orig_cont_rate] * self.days
 
     # Does the calculations for the 4 categories in the model
-    # TODO: refactor this to support events
+    # TODO: rewrite
     @staticmethod
     def __deriv(y, t, model):
         s, e, i, r = y
@@ -98,12 +101,14 @@ class SEIR:
         de_dt = model.cont_rates[model.day] * s * i / model.population - model.incub_time * e
         di_dt = model.incub_time * e - model.recov_rate * i
         dr_dt = model.recov_rate * i
-        model.day += 1 # TODO: fix this; not working as intended
+        model.day += 1  # TODO: fix this; not working as intended
+        model.__count += 1
+        print(model.__count)
         model.day = min(model.day, model.days - 1)
         return ds_dt, de_dt, di_dt, dr_dt
 
     # returns a 4 x t array of values corresponding to S, E, I, R
-    # TODO: refactor this to support events
+    # TODO: rewrite
     def get_data(self):
         y0 = self.s0, self.e0, self.i0, self.r0
         self.__apply_events()
