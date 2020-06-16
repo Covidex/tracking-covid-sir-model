@@ -57,6 +57,8 @@ class SIR:
 # Class for the SEIR model
 class SEIR:
     def __init__(self, s0, e0, i0, r0, population, days, cont_rate, incub_time, recov_rate, events=None):
+        if events is None:
+            events = []
         self.s0 = s0
         self.e0 = e0
         self.i0 = i0
@@ -74,13 +76,14 @@ class SEIR:
 
     # Add events to the model
     def add_events(self, events):
-        self.__events += events
+        self.__events = self.__events + events
 
     # Apply events by updating the list of contact rates
     def __apply_events(self):
         for (t, func) in self.__events:
             for i in range(t, self.days):
                 self.cont_rates[i] = func(self.cont_rates[i])
+        self.__events = []
 
     # Revert contact rates to the original value (R0)
     def revert_events(self):
@@ -91,17 +94,19 @@ class SEIR:
     @staticmethod
     def __deriv(y, t, model):
         s, e, i, r = y
-        ds_dt = -model.cont_rate * s * i / model.population
-        de_dt = model.cont_rate * s * i / model.population - model.incub_time * e
+        ds_dt = -model.cont_rates[model.day] * s * i / model.population
+        de_dt = model.cont_rates[model.day] * s * i / model.population - model.incub_time * e
         di_dt = model.incub_time * e - model.recov_rate * i
         dr_dt = model.recov_rate * i
-        model.day += 1
+        model.day += 1 # TODO: fix this; not working as intended
+        model.day = min(model.day, model.days - 1)
         return ds_dt, de_dt, di_dt, dr_dt
 
     # returns a 4 x t array of values corresponding to S, E, I, R
     # TODO: refactor this to support events
     def get_data(self):
         y0 = self.s0, self.e0, self.i0, self.r0
+        self.__apply_events()
         self.day = 0
         t = np.linspace(0, self.days, self.days + 1)
         data = odeint(SEIR.__deriv, y0, t, args=(self,))
