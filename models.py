@@ -63,45 +63,28 @@ class SEIR:
         self.r0 = r0
         self.population = population
         self.days = days
-        # cont_rates entries will have format [(start_time, value)]
-        self.cont_rates = [(0, cont_rate)]
+        # cont_rates elements will have format [(start_time, value)]
+        self.cont_rates = [cont_rate] * days
         self.__orig_cont_rate = cont_rate
         self.incub_time = incub_time
         self.recov_rate = recov_rate
         self.day = 0
         # events should be be a list of format [(time, lambda)]
-        self.__events = PriorityQueue()
-        for event in events:
-            self.__events.put(event)
+        self.__events = events
 
     # Add events to the model
     def add_events(self, events):
-        for event in events:
-            t, _ = event
-            assert 0 <= t <= self.days
-            self.__events.put(event)
+        self.__events += events
 
     # Apply events by updating the list of contact rates
     def __apply_events(self):
-        # PRE: self.cont_rates is sorted chronologically
-        while not self.__events.empty():
-            t, func = self.__events.get()
-            ind = 0
-            while self.cont_rates[ind][0] < t and ind < len(self.cont_rates):
-                ind += 1
-            if ind == len(self.cont_rates):
-                self.cont_rates.append((t, func(self.cont_rates[-1][1])))
-            else:
-                if not self.cont_rates[ind][0] == t:
-                    self.cont_rates.insert(ind - 1, (t, func(self)))
-                for i in range(ind, len(self.cont_rates)):
-                    start = self.cont_rates[ind][0]
-                    cont_rate = func(self.cont_rates[ind - 1][1])
-                    self.cont_rates[ind] = (start, cont_rate)
+        for (t, func) in self.__events:
+            for i in range(t, self.days):
+                self.cont_rates[i] = func(self.cont_rates[i])
 
     # Revert contact rates to the original value (R0)
     def revert_events(self):
-        self.cont_rates = [(0, self.__orig_cont_rate)]
+        self.cont_rates = [self.__orig_cont_rate] * self.days
 
     # Does the calculations for the 4 categories in the model
     # TODO: refactor this to support events
