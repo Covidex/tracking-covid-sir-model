@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.integrate import odeint
+from scipy.integrate import quad
 import matplotlib.pyplot as plt
 from queue import PriorityQueue
 
@@ -71,8 +72,6 @@ class SEIR:
         self.__orig_cont_rate = cont_rate
         self.incub_time = incub_time
         self.recov_rate = recov_rate
-        self.day = 0
-        self.__count = 0    # debug
         # events should be be a list of format [(time, lambda)]
         self.__events = events
 
@@ -86,7 +85,7 @@ class SEIR:
         for (t, func) in self.__events:
             for i in range(t, self.days):
                 self.cont_rates[i] = func(self.cont_rates[i])
-        self.__events = []
+        self.__events = []  # empty events list after applying
 
     # Revert contact rates to the original value (R0)
     def revert_events(self):
@@ -95,32 +94,31 @@ class SEIR:
     # Does the calculations for the 4 categories in the model
     # TODO: rewrite
     @staticmethod
-    def __deriv(y, t, model):
+    def __deriv(y, self, day):
         s, e, i, r = y
-        ds_dt = -model.cont_rates[model.day] * s * i / model.population
-        de_dt = model.cont_rates[model.day] * s * i / model.population - model.incub_time * e
-        di_dt = model.incub_time * e - model.recov_rate * i
-        dr_dt = model.recov_rate * i
-        model.day += 1  # TODO: fix this; not working as intended
-        model.__count += 1
-        print(model.__count)
-        model.day = min(model.day, model.days - 1)
+        ds_dt = -self.cont_rates[day] * s * i / self.population
+        de_dt = self.cont_rates[day] * s * i / self.population - self.incub_time * e
+        di_dt = self.incub_time * e - self.recov_rate * i
+        dr_dt = self.recov_rate * i
         return ds_dt, de_dt, di_dt, dr_dt
 
     # returns a 4 x t array of values corresponding to S, E, I, R
     # TODO: rewrite
     def get_data(self):
-        y0 = self.s0, self.e0, self.i0, self.r0
+        # y0 = self.s0, self.e0, self.i0, self.r0
         self.__apply_events()
-        self.day = 0
-        t = np.linspace(0, self.days, self.days + 1)
-        data = odeint(SEIR.__deriv, y0, t, args=(self,))
+        data = np.zeros((self.days, 4), dtype=np.float)
+        data[0] = self.s0, self.e0, self.i0, self.r0
+        for day in range(1, self.days):
+            data[day] = data[day - 1] + SEIR.__deriv(data[day - 1], self, day)
+        # t = np.linspace(0, self.days, self.days + 1)
+        # data = odeint(SEIR.__deriv, y0, t, args=(self,))
         return np.array(data).T
 
     # Plots the data outputted by the model
     def plot(self):
         s, e, i, r = self.get_data() / 1000
-        t = np.linspace(0, self.days, self.days + 1)
+        t = np.linspace(0, self.days, self.days)
         fig, ax = plt.subplots()
         ax.plot(t, s, 'b', alpha=0.5, lw=2, label='Susceptible')
         ax.plot(t, e, 'y', alpha=0.5, lw=2, label='Exposed')
@@ -135,12 +133,13 @@ class SEIR:
     # Plots the data outputted by the model, but prettier
     def plot2(self):
         s, e, i, r = SEIR.get_data(self) / 1000
-        t = np.linspace(0, self.days, self.days + 1)
+        t = np.linspace(0, self.days, self.days)
         fig = plt.figure()
         ax = fig.add_subplot(facecolor=(.9, .9, .9), xmargin=0, ymargin=0)
         ax.fill_between(t, i, 0, facecolor=(1, .3, .3))
         ax.fill_between(t, e + i, i, facecolor=(1, .6, .6))
         ax.fill_between(t, r + i, e + i, facecolor=(.7, .7, .7))
+        ax.fill_between(t, self.population / 1000, e + i + r, facecolor=(.9, .9, .9))
         ax.set_xlabel('Time (days)')
         ax.set_ylabel('Number (1000s)')
         plt.show()

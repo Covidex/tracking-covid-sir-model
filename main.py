@@ -1,4 +1,5 @@
 import models
+import numpy as np
 
 population = 19 * 10**6
 days = 365
@@ -11,5 +12,5 @@ s0, e0, i0, r0 = (population - 1, 0, 1, 0)
 # sir.plot2()
 
 seir = models.SEIR(s0, e0, i0, r0, population, days, cont_rate, incub_time, recov_rate)
-# seir.add_events([(150, lambda r: r * 2)])
+seir.add_events([(160, lambda r: 0.005)])
 seir.plot2()
