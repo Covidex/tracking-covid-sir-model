@@ -12,3 +12,5 @@
   * `R = R0 * s` Value of R with respect to R0 and s
   * `R0 -> lambda(R0 * s) / s` New value of R0 after applying the
     lambda function to R
+  * `cont -> lambda(cont * s / recov) * recov / s` New value of cont after
+  applying the lambda function to R

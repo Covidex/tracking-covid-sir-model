@@ -1,8 +1,6 @@
 import numpy as np
 from scipy.integrate import odeint
-from scipy.integrate import quad
 import matplotlib.pyplot as plt
-from queue import PriorityQueue
 
 
 # Class for the SIR model
@@ -57,7 +55,6 @@ class SIR:
 
 # Class for the SEIR model
 class SEIR:
-    # TODO: add/remove stuff if necessary for the rewriting
     def __init__(self, s0, e0, i0, r0, population, days, cont_rate, incub_time, recov_rate, events=None):
         if events is None:
             events = []
@@ -68,7 +65,7 @@ class SEIR:
         self.population = population
         self.days = days
         # cont_rates elements will have format [(start_time, value)]
-        self.cont_rates = [cont_rate] * days
+        self.cont_rate = cont_rate
         self.__orig_cont_rate = cont_rate
         self.incub_time = incub_time
         self.recov_rate = recov_rate
@@ -79,40 +76,37 @@ class SEIR:
     def add_events(self, events):
         self.__events = self.__events + events
 
-    # Apply events by updating the list of contact rates
-    # TODO: rewrite
-    def __apply_events(self):
-        for (t, func) in self.__events:
-            for i in range(t, self.days):
-                self.cont_rates[i] = func(self.cont_rates[i])
-        self.__events = []  # empty events list after applying
-
-    # Revert contact rates to the original value (R0)
-    def revert_events(self):
-        self.cont_rates = [self.__orig_cont_rate] * self.days
+    def __next_cont_rate(self, s, day, cont_rate):
+        if not self.__events:
+            return cont_rate
+        t, func = self.__events[0]
+        if t != day:
+            return cont_rate
+        self.__events = self.__events[1:]
+        s = s / self.population
+        return func(cont_rate * s / self.recov_rate) * self.recov_rate / s
 
     # Does the calculations for the 4 categories in the model
-    # TODO: rewrite
     @staticmethod
-    def __deriv(y, self, day):
-        s, e, i, r = y
-        ds_dt = -self.cont_rates[day] * s * i / self.population
-        de_dt = self.cont_rates[day] * s * i / self.population - self.incub_time * e
-        di_dt = self.incub_time * e - self.recov_rate * i
-        dr_dt = self.recov_rate * i
+    def __deriv(seir, model, cont_rate):
+        s, e, i, r = seir
+        ds_dt = -cont_rate * s * i / model.population
+        de_dt = cont_rate * s * i / model.population - model.incub_time * e
+        di_dt = model.incub_time * e - model.recov_rate * i
+        dr_dt = model.recov_rate * i
         return ds_dt, de_dt, di_dt, dr_dt
 
     # returns a 4 x t array of values corresponding to S, E, I, R
-    # TODO: rewrite
     def get_data(self):
-        # y0 = self.s0, self.e0, self.i0, self.r0
-        self.__apply_events()
+        self.__events.sort(key=lambda e: e[0])
+        events_backup = self.__events.copy()
         data = np.zeros((self.days, 4), dtype=np.float)
         data[0] = self.s0, self.e0, self.i0, self.r0
+        cont_rate = self.__next_cont_rate(self.s0, 0, self.cont_rate)
         for day in range(1, self.days):
-            data[day] = data[day - 1] + SEIR.__deriv(data[day - 1], self, day)
-        # t = np.linspace(0, self.days, self.days + 1)
-        # data = odeint(SEIR.__deriv, y0, t, args=(self,))
+            data[day] = data[day - 1] + SEIR.__deriv(data[day - 1], self, cont_rate)
+            cont_rate = self.__next_cont_rate(data[day][0], day, cont_rate)
+        self.__events = events_backup
         return np.array(data).T
 
     # Plots the data outputted by the model
