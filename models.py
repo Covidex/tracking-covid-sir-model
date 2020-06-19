@@ -76,6 +76,11 @@ class SEIR:
     def add_events(self, events):
         self.__events = self.__events + events
 
+    # Remove all events
+    def clear_events(self):
+        self.__events = []
+
+    # Returns the value of the next contact rate, after events are applied
     def __next_cont_rate(self, s, day, cont_rate):
         if not self.__events:
             return cont_rate
@@ -88,7 +93,7 @@ class SEIR:
 
     # Does the calculations for the 4 categories in the model
     @staticmethod
-    def __deriv(seir, model, cont_rate):
+    def __deriv(seir, t, model, cont_rate):
         s, e, i, r = seir
         ds_dt = -cont_rate * s * i / model.population
         de_dt = cont_rate * s * i / model.population - model.incub_time * e
@@ -96,7 +101,7 @@ class SEIR:
         dr_dt = model.recov_rate * i
         return ds_dt, de_dt, di_dt, dr_dt
 
-    # returns a 4 x t array of values corresponding to S, E, I, R
+    # Returns a 4 x t array of values corresponding to S, E, I, R
     def get_data(self):
         self.__events.sort(key=lambda e: e[0])
         events_backup = self.__events.copy()
@@ -104,7 +109,9 @@ class SEIR:
         data[0] = self.s0, self.e0, self.i0, self.r0
         cont_rate = self.__next_cont_rate(self.s0, 0, self.cont_rate)
         for day in range(1, self.days):
-            data[day] = data[day - 1] + SEIR.__deriv(data[day - 1], self, cont_rate)
+            # data[day] = data[day - 1] + SEIR.__deriv(data[day - 1], self, cont_rate)
+            t = np.linspace(day - 1, day, 2)
+            data[day] = odeint(SEIR.__deriv, data[day - 1], t, args=(self, cont_rate))[-1]
             cont_rate = self.__next_cont_rate(data[day][0], day, cont_rate)
         self.__events = events_backup
         return np.array(data).T
