@@ -25,16 +25,19 @@ class SIR:
     def clear_events(self):
         self.__events = []
 
-    # Returns the value of the next contact rate, after events are applied
+    # Returns the value of the contact rate on a specific day, after events are applied
     def __next_cont_rate(self, s, day, cont_rate):
         if not self.__events:
             return cont_rate
-        t, func = self.__events[0]
-        if t != day:
-            return cont_rate
-        self.__events = self.__events[1:]
+        next_rate = cont_rate
         s = s / self.population
-        return func(cont_rate * s / self.recov_rate) * self.recov_rate / s
+        while self.__events:
+            t, func = self.__events[0]
+            if t != day:
+                break
+            next_rate = func(next_rate * s / self.recov_rate) * self.recov_rate / s
+            self.__events = self.__events[1:]
+        return next_rate
 
     # Does the calculations for the 3 categories in the model
     @staticmethod
@@ -113,16 +116,19 @@ class SEIR:
     def clear_events(self):
         self.__events = []
 
-    # Returns the value of the next contact rate, after events are applied
+    # Returns the value of the contact rate on a specific day, after events are applied
     def __next_cont_rate(self, s, day, cont_rate):
         if not self.__events:
             return cont_rate
-        t, func = self.__events[0]
-        if t != day:
-            return cont_rate
-        self.__events = self.__events[1:]
+        next_rate = cont_rate
         s = s / self.population
-        return func(cont_rate * s / self.recov_rate) * self.recov_rate / s
+        while self.__events:
+            t, func = self.__events[0]
+            if t != day:
+                break
+            next_rate = func(next_rate * s / self.recov_rate) * self.recov_rate / s
+            self.__events = self.__events[1:]
+        return next_rate
 
     # Does the calculations for the 4 categories in the model
     @staticmethod
