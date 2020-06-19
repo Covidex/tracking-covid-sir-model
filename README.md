@@ -1,10 +1,4 @@
-#### TO DO:
-* Rewrite SEIR to support events. It is probably impossible to do this
-  using *scipy*'s *odeint* or such functions, so the good old
-  step-by-step method might be the best we've got. That would mean
-  calculating *s, e, i, r* for each day using the numbers from
-  the previous days and the events.
-  
+#### Dev Notes:
   Events have the form *[(day, lambda)]* meaning that on a given day, the
   value of R becomes the output of *lambda(R)*. The following equations
   might prove useful:
