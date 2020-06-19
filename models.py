@@ -36,6 +36,7 @@ class SIR:
         s = s / self.population
         return func(cont_rate * s / self.recov_rate) * self.recov_rate / s
 
+    # Does the calculations for the 3 categories in the model
     @staticmethod
     def __deriv(sir, t, model, cont_rate):
         s, i, r = sir
@@ -44,6 +45,7 @@ class SIR:
         dr_dt = model.recov_rate * i
         return ds_dt, di_dt, dr_dt
 
+    # Returns a 3 x t array of values corresponding to S, I, R
     def get_data(self):
         self.__events.sort(key=lambda e: e[0])
         events_backup = self.__events.copy()
@@ -57,6 +59,7 @@ class SIR:
         self.__events = events_backup
         return np.array(data).T
 
+    # Plots the data outputted by the model
     def plot(self):
         s, i, r = self.get_data() / 1000
         t = np.linspace(0, self.days, self.days)
@@ -70,6 +73,7 @@ class SIR:
         ax.legend()
         plt.show()
 
+    # Plots the data outputted by the model, but prettier
     def plot2(self):
         s, i, r = SIR.get_data(self) / 1000
         t = np.linspace(0, self.days, self.days)
