@@ -1,6 +1,4 @@
 import models
-import matplotlib.pyplot as plt
-import numpy as np
 
 population = 10**6
 days = 365
